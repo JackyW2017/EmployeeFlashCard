@@ -15,6 +15,13 @@ var mainView = myApp.addView('.view-main', {
     dynamicNavbar: true
 });
 
+var consoleHolder = console;
+console = {};
+console.log = function (msg) {
+    consoleHolder.log(msg);
+    $$("#pnlDebugInfo").html($$("#pnlDebugInfo").html() + "<br/>" + msg);
+};
+
 var pageIndex4Download = 1;
 var pageTotal4Download = 1;
 var totalPicsCount = 0;
@@ -446,7 +453,7 @@ function RetrieveDataFromServer()
             pageTotal4Download = data.TotalPageNum;
             if (pageIndex4Download < data.TotalPageNum)
             {
-                console.log("Running in here!");
+                console.log("Running in here! Start setTimeout to RetrieveDataFromeServer.");
                 pageIndex4Download += 1;
                 
                 setTimeout("RetrieveDataFromServer()",300);
