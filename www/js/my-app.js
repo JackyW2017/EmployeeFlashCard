@@ -416,7 +416,7 @@ function RetrieveDataFromServer()
     postdata.pageIndex = pageIndex4Download;
     if (pageIndex4Download == 1)
     {
-        myApp.showPreloader('Downloading...');
+       // myApp.showPreloader('Downloading...');
     }
     else
     {
