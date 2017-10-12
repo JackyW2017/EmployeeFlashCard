@@ -432,7 +432,8 @@ function RetrieveDataFromServer()
             data: JSON.stringify(postdata),
             // if successful response received (http 2xx)
             success: function (data, textStatus) {
-                // We have received response and can hide activity indicator            
+                // We have received response and can hide activity indicator
+                console.log("data is returned.");
                 data = JSON.parse(data);
                 console.log("pageIndex is " + data.pageIndex);
                 console.log("TotalPageNum is " + data.TotalPageNum);
