@@ -424,55 +424,61 @@ function RetrieveDataFromServer()
         myApp.showPreloader('Downloading...' + pageIndex4Download + "/" + pageTotal4Download);
     }
     console.log("Start to post data to server. The URL is :" + serverURL + "/comInterface.ashx");
-    $$.ajax({
-        url: serverURL + "/comInterface.ashx",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify(postdata),
-        // if successful response received (http 2xx)
-        success: function (data, textStatus) {
-            // We have received response and can hide activity indicator            
-            data = JSON.parse(data);
-            console.log("pageIndex is " + data.pageIndex);
-            console.log("TotalPageNum is " + data.TotalPageNum);
-            if (data.TotalPageNum == 0) {
-                myApp.hidePreloader();
-                myApp.alert("There is no any records from server.");
-                return;
-            }
+    try {
+        $$.ajax({
+            url: serverURL + "/comInterface.ashx",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(postdata),
+            // if successful response received (http 2xx)
+            success: function (data, textStatus) {
+                // We have received response and can hide activity indicator            
+                data = JSON.parse(data);
+                console.log("pageIndex is " + data.pageIndex);
+                console.log("TotalPageNum is " + data.TotalPageNum);
+                if (data.TotalPageNum == 0) {
+                    myApp.hidePreloader();
+                    myApp.alert("There is no any records from server.");
+                    return;
+                }
 
-            for (var i = 0; i < data.mCards.length; i++) {
-                InsertData2Database(data.mCards[i].Name, 
-                                    data.mCards[i].HireDate,
-                                    data.mCards[i].AssignedPosition,
-                                    data.mCards[i].LeftPosition,
-                                    data.mCards[i].RightPosition,
-                                    data.mCards[i].HireType,data.mCards[i].employeeid);
+                for (var i = 0; i < data.mCards.length; i++) {
+                    InsertData2Database(data.mCards[i].Name,
+                        data.mCards[i].HireDate,
+                        data.mCards[i].AssignedPosition,
+                        data.mCards[i].LeftPosition,
+                        data.mCards[i].RightPosition,
+                        data.mCards[i].HireType, data.mCards[i].employeeid);
 
-            }
-            pageTotal4Download = data.TotalPageNum;
-            if (pageIndex4Download < data.TotalPageNum)
-            {
-                console.log("Running in here! Start setTimeout to RetrieveDataFromeServer.");
-                pageIndex4Download += 1;
-                
-                setTimeout("RetrieveDataFromServer()",300);
-                return;
-            }
-            else {
-                getCardsCount();
+                }
+                pageTotal4Download = data.TotalPageNum;
+                if (pageIndex4Download < data.TotalPageNum) {
+                    console.log("Running in here! Start setTimeout to RetrieveDataFromeServer.");
+                    pageIndex4Download += 1;
+
+                    setTimeout("RetrieveDataFromServer()", 300);
+                    return;
+                }
+                else {
+                    getCardsCount();
+                    myApp.hidePreloader();
+                    myApp.alert("All Cards Records are saved in DB.");
+
+                }
+
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                // We have received response and can hide activity indicator
                 myApp.hidePreloader();
-                myApp.alert("All Cards Records are saved in DB.");
-                
+                myApp.alert('Error when trying to get data from server', 'Error');
             }
-            
-        },
-        error: function (xhr, textStatus, errorThrown) {
-            // We have received response and can hide activity indicator
-            myApp.hidePreloader();
-            myApp.alert('Error when trying to get data from server', 'Error');
-        }
-    });
+        });
+    }
+    catch (ex)
+    {
+        console.log(ex);
+    }
+   
 }
 /*
  public string Name;
