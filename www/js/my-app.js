@@ -32,6 +32,12 @@ var InCorrectCount = 0;
 var totalPicWaitingDownload = 0;
 var currentDownloadPicsIndex = 0;
 
+function refreshCorrectOrIncorrectCount()
+{
+    initCorrectCount();
+    initInCorrectCount();
+}
+
 function runDB(obj) {
     console.log("Execute SQL success.");
 }
@@ -54,8 +60,7 @@ $$(document).on('deviceready', function() {
     checkDBExists(); 
     initMainCards();
 
-    initInCorrectCount();
-    initCorrectCount();
+    refreshCorrectOrIncorrectCount();
     
 });
 
@@ -106,6 +111,15 @@ function bindAllButtonEvent()
         console.log("Completed item-inner click....");
     });
 
+    $$('#hrefClearLogButton').on('click', function () {
+        removeLog();
+    });
+
+}
+
+function removeLog()
+{
+    $$('#pnlDebugInfo').html("pnlDebugInfo");
 }
 
 function initInCorrectCount()
@@ -132,7 +146,7 @@ function initCorrectCount()
 
 function HandleCorrect(obj,eid)
 {
-    CorrectCount++;
+    //CorrectCount++;
     $$("#mark_pic_" + eid).prop("src", "./pic/tick.png");
     $$("#spnCorrectCount").html(CorrectCount);
     var subparent = $$(obj).parent();
@@ -144,11 +158,12 @@ function HandleCorrect(obj,eid)
     db.transaction(function (tx) {
         tx.executeSql(strSql);
     });
+    refreshCorrectOrIncorrectCount();
 }
 
 function HandleIncorrect(obj,eid)
 {
-    InCorrectCount++;
+    //InCorrectCount++;
     $$("#mark_pic_" + eid).prop("src", "./pic/wrong.png");
     $$("#spnInCorrectCount").html(InCorrectCount);
     var subparent = $$(obj).parent();
@@ -160,6 +175,7 @@ function HandleIncorrect(obj,eid)
     db.transaction(function (tx) {
         tx.executeSql(strSql);
     });
+    refreshCorrectOrIncorrectCount()
 }
 
 function clicksOption(obj)
@@ -308,7 +324,10 @@ function ResetCards()
 
     }, function (error) {
         console.log('Error when trying init ResetCards: ' + error.message);
-    });
+        });
+
+    refreshCorrectOrIncorrectCount();
+
 }
 
 function getCardsCount()
@@ -433,8 +452,10 @@ function RetrieveDataFromServer()
             // if successful response received (http 2xx)
             success: function (data, textStatus) {
                 // We have received response and can hide activity indicator
+                console.log("======================");
                 console.log("data is returned.");
                 data = JSON.parse(data);
+                console.log("pageIndex4Download is " + pageIndex4Download);
                 console.log("pageIndex is " + data.pageIndex);
                 console.log("TotalPageNum is " + data.TotalPageNum);
                 if (data.TotalPageNum == 0) {
@@ -442,30 +463,37 @@ function RetrieveDataFromServer()
                     myApp.alert("There is no any records from server.");
                     return;
                 }
+                console.log("mCards length is " + data.mCards.length);
+                var strSql = "";
+                console.log("Going to Insert data to Cards");
+                db.transaction(function (tx) {
+                    for (var i = 0; i < data.mCards.length; i++) {
+                        strSql = InsertData2Database(data.mCards[i].Name,
+                            data.mCards[i].HireDate,
+                            data.mCards[i].AssignedPosition,
+                            data.mCards[i].LeftPosition,
+                            data.mCards[i].RightPosition,
+                            data.mCards[i].HireType, data.mCards[i].employeeid);
+                        console.log("The strSql code is :" + strSql);
+                        tx.executeSql(strSql);
+                    }
+                    console.log("Insert completed!");  
+                    pageTotal4Download = data.TotalPageNum;
+                    if (pageIndex4Download < data.TotalPageNum) {
+                        console.log("Running in here! Start setTimeout to RetrieveDataFromeServer.");
+                        pageIndex4Download += 1;
 
-                for (var i = 0; i < data.mCards.length; i++) {
-                    InsertData2Database(data.mCards[i].Name,
-                        data.mCards[i].HireDate,
-                        data.mCards[i].AssignedPosition,
-                        data.mCards[i].LeftPosition,
-                        data.mCards[i].RightPosition,
-                        data.mCards[i].HireType, data.mCards[i].employeeid);
-
-                }
-                pageTotal4Download = data.TotalPageNum;
-                if (pageIndex4Download < data.TotalPageNum) {
-                    console.log("Running in here! Start setTimeout to RetrieveDataFromeServer.");
-                    pageIndex4Download += 1;
-
-                    setTimeout("RetrieveDataFromServer()", 300);
-                    return;
-                }
-                else {
-                    getCardsCount();
-                    myApp.hidePreloader();
-                    myApp.alert("All Cards Records are saved in DB.");
-
-                }
+                        setTimeout("RetrieveDataFromServer()", 500);
+                        return;
+                    }
+                    else {
+                        console.log("All cards are saved. Will alert a messagebox to user.");
+                        getCardsCount();
+                        myApp.hidePreloader();
+                        myApp.alert("All Cards Records are saved in DB.");
+                    }
+                });               
+                
 
             },
             error: function (xhr, textStatus, errorThrown) {
@@ -494,14 +522,7 @@ function InsertData2Database(strName, strHireDate, strAssignedPosition, strLeftP
 {
     var strSql = 'Insert into [Cards] ([Name],[HireDate],[AssignedPosition],[LeftPosition],[RightPosition],[HireType],[employeeid]) values("' +
                                        strName + '","' + strHireDate+ '","' + strAssignedPosition+ '","' + strLeftPosition+ '","' + strRightPosition+ '","' + strHireType+ '","' + strEID + '")';
-    console.log("Going to Insert data to Cards, SQL command is " + strSql);
-    db.transaction(function (tx) {
-        tx.executeSql(strSql, [], function (tx, rs) {
-            console.log("Insert completed!");
-        }, function (tx, error) {
-            console.log('Insert error: ' + error.message);
-        });
-    });
+    return strSql;
 }
 
 
@@ -533,6 +554,7 @@ function DeletePics()
 function DownloadPics()
 {
     DeletePics();
+
     var strSql = "Update [Cards] set PicDownloaded = 0;";
     db.transaction(function (tx) {
         
@@ -571,6 +593,8 @@ function DownloadPicOneByOne()
             else {
                 myApp.hidePreloader();
                 myApp.alert("All pics are downloaded. Please click the refresh pics to refresh all cards.", "Message");
+                initMainCards();
+
             }
 
         }, function (tx, error) {
